@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pendaftaran Barcode Produk</title>
+    <style>
+        /* --- Gaya CSS (style.css) --- */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group, .search-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background-color: #eee;
+            margin: 30px 0;
+        }
+
+        .product-details {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #e9f7ef;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            color: #155724;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+
+        .product-details.visible {
+            display: block;
+        }
+
+        .product-details p {
+            margin: 5px 0;
+        }
+
+        #productList {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+
+        #productList li {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #productList li span {
+            color: #333;
+        }
+
+        #productList li .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        #productList li .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .search-group button {
+            width: auto;
+            margin-left: 10px;
+            padding: 10px 15px;
+        }
+
+        /* --- Gaya untuk Pemindai Barcode --- */
+        .scanner-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 20px auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #barcodeScanner {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            border: 2px solid green;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        #scannerMessage {
+            text-align: center;
+            margin-top: 10px;
+            color: #555;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pendaftaran Produk Baru</h1>
+
+        <div class="scanner-container">
+            <video id="barcodeScanner" autoplay="true" playsinline="true"></video>
+            <div class="scanner-overlay"></div>
+            <p id="scannerMessage">Arahkan kamera ke barcode...</p>
+        </div>
+
+        <button id="startScannerButton">Mulai Pindai</button>
+        <button id="stopScannerButton" style="display: none;">Hentikan Pindai</button>
+
+        <div class="form-group">
+            <label for="barcodeInput">Barcode Produk:</label>
+            <input type="text" id="barcodeInput" placeholder="Hasil pindai barcode" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="productNameInput">Nama Produk:</label>
+            <input type="text" id="productNameInput" placeholder="Masukkan nama produk">
+        </div>
+
+        <div class="form-group">
+            <label for="productPriceInput">Harga Produk (RM):</label>
+            <input type="number" id="productPriceInput" step="0.01" placeholder="Masukkan harga produk">
+        </div>
+
+        <button id="registerButton">Daftarkan Produk</button>
+
+        <hr>
+
+        <h2>Daftar Produk Terdaftar</h2>
+        <div class="search-group">
+            <label for="searchBarcodeInput">Cari Barcode:</label>
+            <input type="text" id="searchBarcodeInput" placeholder="Masukkan barcode untuk mencari">
+            <button id="searchButton">Cari</button>
+        </div>
+        <div id="productDetails" class="product-details">
+            </div>
+
+        <ul id="productList">
+            </ul>
+    </div>
+
+    <script src="quagga.min.js"></script>
+    <script>
+        // --- Logika JavaScript (script.js) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const barcodeInput = document.getElementById('barcodeInput');
+            const productNameInput = document.getElementById('productNameInput');
+            const productPriceInput = document.getElementById('productPriceInput');
+            const registerButton = document.getElementById('registerButton');
+            const searchBarcodeInput = document.getElementById('searchBarcodeInput');
+            const searchButton = document.getElementById('searchButton');
+            const productDetails = document.getElementById('productDetails');
+            const productList = document.getElementById('productList');
+
+            // Elemen baru untuk pemindai
+            const barcodeScanner = document.getElementById('barcodeScanner');
+            const startScannerButton = document.getElementById('startScannerButton');
+            const stopScannerButton = document.getElementById('stopScannerButton');
+            const scannerMessage = document.getElementById('scannerMessage');
+
+            let products = JSON.parse(localStorage.getItem('products')) || {};
+            let isScannerRunning = false;
+
+            const saveProducts = () => {
+                localStorage.setItem('products', JSON.stringify(products));
+            };
+
+            const displayProducts = () => {
+                productList.innerHTML = '';
+                for (const barcode in products) {
+                    const product = products[barcode];
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `
+                        <span><strong>${barcode}</strong> - ${product.name} (RM ${product.price.toFixed(2)})</span>
+                        <button class="delete-btn" data-barcode="${barcode}">Hapus</button>
+                    `;
+                    productList.appendChild(listItem);
+                }
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const barcodeToDelete = event.target.dataset.barcode;
+                        delete products[barcodeToDelete];
+                        saveProducts();
+                        displayProducts();
+                        if (searchBarcodeInput.value === barcodeToDelete) {
+                            productDetails.classList.remove('visible');
+                            productDetails.innerHTML = '';
+                        }
+                    });
+                });
+            };
+
+            // --- Fungsionalitas Pemindai Barcode (QuaggaJS) ---
+            const startScanner = () => {
+                if (isScannerRunning) return;
+
+                Quagga.init({
+                    inputStream: {
+                        name: "Live",
+                        type: "LiveStream",
+                        target: barcodeScanner,
+                        constraints: {
+                            facingMode: "environment"
+                        },
+                    },
+                    decoder: {
+                        readers: ["ean_reader", "code_128_reader", "code_39_reader"]
+                    }
+                }, function(err) {
+                    if (err) {
+                        console.error(err);
+                        scannerMessage.textContent = 'Gagal memulai kamera: ' + err.message;
+                        return;
+                    }
+                    Quagga.start();
+                    isScannerRunning = true;
+                    scannerMessage.textContent = 'Arahkan kamera ke barcode...';
+                    startScannerButton.style.display = 'none';
+                    stopScannerButton.style.display = 'block';
+                    barcodeScanner.style.display = 'block';
+                });
+
+                Quagga.onDetected(function(result) {
+                    const code = result.codeResult.code;
+                    if (code) {
+                        barcodeInput.value = code;
+                        scannerMessage.textContent = `Barcode terdeteksi: ${code}`;
+                        stopScanner();
+                        searchBarcodeInput.value = code;
+                        searchButton.click();
+                    }
+                });
+
+                Quagga.onProcessed(function(result) {
+                    // Anda bisa menambahkan logika visualisasi di sini jika diperlukan
+                });
+            };
+
+            const stopScanner = () => {
+                if (isScannerRunning) {
+                    Quagga.stop();
+                    isScannerRunning = false;
+                    scannerMessage.textContent = 'Pemindai berhenti.';
+                    startScannerButton.style.display = 'block';
+                    stopScannerButton.style.display = 'none';
+                }
+            };
+
+            startScannerButton.addEventListener('click', startScanner);
+            stopScannerButton.addEventListener('click', stopScanner);
+
+            // --- Fungsionalitas Pendaftaran dan Pencarian Produk ---
+            registerButton.addEventListener('click', () => {
+                const barcode = barcodeInput.value.trim();
+                const name = productNameInput.value.trim();
+                const price = parseFloat(productPriceInput.value);
+
+                if (!barcode || !name || isNaN(price)) {
+                    alert('Harap isi semua kolom dengan benar!');
+                    return;
+                }
+
+                if (products[barcode]) {
+                    alert('Barcode ini sudah terdaftar. Gunakan barcode lain atau edit produk yang sudah ada.');
+                    return;
+                }
+
+                products[barcode] = { name, price };
+                saveProducts();
+                alert('Produk berhasil didaftarkan!');
+                barcodeInput.value = '';
+                productNameInput.value = '';
+                productPriceInput.value = '';
+                displayProducts();
+            });
+
+            searchButton.addEventListener('click', () => {
+                const searchBarcode = searchBarcodeInput.value.trim();
+                if (!searchBarcode) {
+                    alert('Harap masukkan barcode untuk mencari.');
+                    productDetails.classList.remove('visible');
+                    productDetails.innerHTML = '';
+                    return;
+                }
+
+                const foundProduct = products[searchBarcode];
+                if (foundProduct) {
+                    productDetails.innerHTML = `
+                        <p><strong>Barcode:</strong> ${searchBarcode}</p>
+                        <p><strong>Nama Produk:</strong> ${foundProduct.name}</p>
+                        <p><strong>Harga:</strong> RM ${foundProduct.price.toFixed(2)}</p>
+                    `;
+                    productDetails.classList.add('visible');
+                } else {
+                    productDetails.innerHTML = `
+                        <p>Produk dengan barcode <strong>${searchBarcode}</strong> tidak ditemukan.</p>
+                    `;
+                    productDetails.classList.add('visible');
+                }
+            });
+
+            // Inisialisasi tampilan produk saat halaman dimuat
+            displayProducts();
+        });
+    </script>
+</body>
+</html>
